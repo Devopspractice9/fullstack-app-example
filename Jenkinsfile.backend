@@ -1,0 +1,75 @@
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Backend Dependencies') {
+            steps {
+                dir('backend') {
+                    sh 'npm ci --omit=dev'
+                }
+            }
+        }
+
+        stage('Validate Backend') {
+            steps {
+                dir('backend') {
+                    sh 'node --check server.js'
+                }
+            }
+        }
+
+        stage('Deploy Backend') {
+            steps {
+                sh '''
+                    rsync -av --delete \
+                    backend/ \
+                    /opt/fullstack/backend/
+                '''
+            }
+        }
+
+        stage('Restart Backend Service') {
+            steps {
+                sh '''
+                    sudo -n /usr/bin/systemctl restart \
+                    fullstack-backend.service
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    curl --fail --silent --show-error \
+                    --retry 10 \
+                    --retry-delay 2 \
+                    --retry-connrefused \
+                    http://127.0.0.1:5000/healthz
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'BACKEND PIPELINE SUCCESSFUL'
+        }
+
+        failure {
+            echo 'BACKEND PIPELINE FAILED'
+        }
+    }
+}
