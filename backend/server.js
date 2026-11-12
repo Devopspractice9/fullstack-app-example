@@ -30,7 +30,7 @@ app.get('/api/project', (req, res) => {
     res.json({
         studentName: "Smith, John",
         projectName: "Weather App",
-        projectUrl: "http://10.0.0.1:3000/",
+        projectUrl: "/",
         projectDescription: "This application provides real-time weather updates for any location worldwide."
     });
 });
